@@ -169,6 +169,10 @@ public interface StorageInterface {
         );
     }
 
+    default String largeMessagePrefix() {
+        return "/_messages";
+    }
+
     default Optional<String> extractExecutionId(URI path) {
         Pattern pattern = Pattern.compile("^/(.+)/executions/([^/]+)/", Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(path.getPath());
