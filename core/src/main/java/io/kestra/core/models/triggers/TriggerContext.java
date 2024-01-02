@@ -3,15 +3,16 @@ package io.kestra.core.models.triggers;
 import io.kestra.core.models.TenantInterface;
 import io.kestra.core.utils.IdUtils;
 import io.micronaut.core.annotation.Introspected;
+import io.micronaut.core.annotation.Nullable;
 import io.swagger.v3.oas.annotations.Hidden;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
-import java.time.ZonedDateTime;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
+import java.time.ZonedDateTime;
 
 @SuperBuilder(toBuilder = true)
 @ToString
@@ -37,6 +38,9 @@ public class TriggerContext implements TenantInterface {
 
     @NotNull
     private ZonedDateTime date;
+
+    @Nullable
+    private ZonedDateTime nextExecutionDate;
 
     public String uid() {
         return uid(this);
