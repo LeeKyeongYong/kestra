@@ -255,7 +255,7 @@ public class ExecutionService {
                 null,
                 null
             )
-            .map(execution -> {
+            .map(throwFunction(execution -> {
                 PurgeResult.PurgeResultBuilder<?, ?> builder = PurgeResult.builder();
 
                 if (purgeExecution) {
@@ -276,7 +276,7 @@ public class ExecutionService {
                 }
 
                 return (PurgeResult) builder.build();
-            })
+            }))
             .reduce((a, b) -> a
                 .toBuilder()
                 .executionsCount(a.getExecutionsCount() + b.getExecutionsCount())
@@ -284,7 +284,7 @@ public class ExecutionService {
                 .storagesCount(a.getStoragesCount() + b.getStoragesCount())
                 .build()
             )
-            .blockingGet();
+            .block();
 
         if (purgeResult != null) {
             return purgeResult;

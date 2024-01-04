@@ -7,7 +7,7 @@ import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
-import io.micronaut.rxjava2.http.client.RxHttpClient;
+import io.micronaut.reactor.http.client.ReactorHttpClient;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class AuthenticationFilterTest extends JdbcH2ControllerTest {
     @Inject
     @Client("/")
-    private RxHttpClient client;
+    private ReactorHttpClient client;
 
     @Value("${kestra.server.basic-auth.username}")
     private String username;
