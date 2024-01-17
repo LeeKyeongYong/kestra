@@ -1,6 +1,5 @@
 package io.kestra.webserver.controllers;
 
-import io.kestra.core.models.flows.Flow;
 import io.kestra.core.serializers.YamlFlowParser;
 import io.kestra.core.services.FlowService;
 import io.kestra.core.storages.FileAttributes;
