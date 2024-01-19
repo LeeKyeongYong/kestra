@@ -27,11 +27,23 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -46,7 +58,6 @@ public class RunContext {
     private MetricRegistry meterRegistry;
     private Path tempBasedPath;
     private RunContextCache runContextCache;
-
     private URI storageOutputPrefix;
     private URI storageExecutionPrefix;
     private Map<String, Object> variables;
@@ -62,8 +73,8 @@ public class RunContext {
      * Only used by {@link io.kestra.core.models.triggers.types.Flow}
      *
      * @param applicationContext the current {@link ApplicationContext}
-     * @param flow the current {@link Flow}
-     * @param execution the current {@link Execution}
+     * @param flow               the current {@link Flow}
+     * @param execution          the current {@link Execution}
      */
     public RunContext(ApplicationContext applicationContext, Flow flow, Execution execution) {
         this.initBean(applicationContext);
@@ -75,10 +86,10 @@ public class RunContext {
      * Normal usage
      *
      * @param applicationContext the current {@link ApplicationContext}
-     * @param flow the current {@link Flow}
-     * @param task the current {@link io.kestra.core.models.tasks.Task}
-     * @param execution the current {@link Execution}
-     * @param taskRun the current {@link TaskRun}
+     * @param flow               the current {@link Flow}
+     * @param task               the current {@link io.kestra.core.models.tasks.Task}
+     * @param execution          the current {@link Execution}
+     * @param taskRun            the current {@link TaskRun}
      */
     public RunContext(ApplicationContext applicationContext, Flow flow, Task task, Execution execution, TaskRun taskRun) {
         this.initBean(applicationContext);
@@ -102,7 +113,7 @@ public class RunContext {
      * Only used by Unit Test
      *
      * @param applicationContext the current {@link ApplicationContext}
-     * @param variables The variable to inject
+     * @param variables          The variable to inject
      */
     @VisibleForTesting
     public RunContext(ApplicationContext applicationContext, Map<String, Object> variables) {
@@ -192,6 +203,8 @@ public class RunContext {
         return triggerExecutionId;
     }
 
+
+
     public Map<String, Object> getVariables() {
         return variables;
     }
@@ -242,8 +255,7 @@ public class RunContext {
                         "namespace", flow.getNamespace(),
                         "revision", flow.getRevision()
                     ));
-            }
-            else {
+            } else {
                 builder
                     .put("flow", ImmutableMap.of(
                         "id", flow.getId(),
@@ -543,9 +555,9 @@ public class RunContext {
      * This method is meant to be used by polling triggers, the name of the destination file is derived from the
      * executionId and the trigger passed as parameters.
      *
-     * @param file the temporary file to upload to storage
+     * @param file        the temporary file to upload to storage
      * @param executionId overwrite file name
-     * @param trigger the trigger
+     * @param trigger     the trigger
      * @return the {@code StorageObject} created
      * @throws IOException If the temporary file can't be read
      */
@@ -563,6 +575,41 @@ public class RunContext {
             ),
             (String) null
         );
+    }
+
+    /**
+     * Stores a file with the given name for the given {@link InputStream} into Kestra's storage.
+     *
+     * @param inputStream   the {@link InputStream} of the file content.
+     * @param name          the target name of the file to be stored in the storage.
+     * @return              the URI of the file/object in the internal storage.
+     * @throws IOException  if an error occurred while storing the file.
+     */
+    public URI putFile(InputStream inputStream, String name) throws IOException {
+        URI uri = storageOutputPrefix.resolve(storageOutputPrefix + "/" + name);
+        return this.storageInterface.put(tenantId(), uri, new BufferedInputStream(inputStream));
+    }
+
+    /**
+     * Stores a file with the given name for the given {@link InputStream} into Kestra's storage.
+     *
+     * @param inputStream   the {@link InputStream} of the file content.
+     * @param uri           the target URI of the file to be stored in the storage.
+     * @return              the URI of the file/object in the internal storage.
+     * @throws IOException  if an error occurred while storing the file.
+     */
+    public URI putFile(InputStream inputStream, URI uri) throws IOException {
+        return this.storageInterface.put(tenantId(), uri, new BufferedInputStream(inputStream));
+    }
+
+    /**
+     * Checks whether the given URI points to an exiting file/object in the internal storage.
+     *
+     * @param uri      the URI of the file/object in the internal storage.
+     * @return         {@code true} if the URI points to a file/object that exists in the internal storage.
+     */
+    public boolean isFileExist(URI uri) {
+        return this.storageInterface.exists(tenantId(), uri);
     }
 
     private URI putTempFile(InputStream inputStream, String prefix, String name) throws IOException {
@@ -606,7 +653,7 @@ public class RunContext {
         URI uri = URI.create(this.taskStateFilePathPrefix(state, isNamespace, useTaskRun));
         URI resolve = uri.resolve(uri.getPath() + "/" + name);
 
-       return this.storageInterface.get(tenantId(), resolve);
+        return this.storageInterface.get(tenantId(), resolve);
     }
 
     public URI putTaskStateFile(byte[] content, String state, String name) throws IOException {
@@ -651,10 +698,9 @@ public class RunContext {
      * If the cache file didn't exist, an empty Optional is returned.
      *
      * @param namespace the flow namespace
-     * @param flowId the flow identifier
-     * @param taskId the task identifier
-     * @param value optional, the task run value
-     *
+     * @param flowId    the flow identifier
+     * @param taskId    the task identifier
+     * @param value     optional, the task run value
      * @return an Optional with the cache input stream or empty.
      */
     public Optional<InputStream> getTaskCacheFile(String namespace, String flowId, String taskId, String value) throws IOException {
@@ -670,12 +716,11 @@ public class RunContext {
     /**
      * Put into the internal storage the cache file corresponding to this task.
      *
-     * @param file the cache as a ZIP archive
+     * @param file      the cache as a ZIP archive
      * @param namespace the flow namespace
-     * @param flowId the flow identifier
-     * @param taskId the task identifier
-     * @param value optional, the task run value
-     *
+     * @param flowId    the flow identifier
+     * @param taskId    the task identifier
+     * @param value     optional, the task run value
      * @return the URI of the file inside the internal storage.
      */
     public URI putTaskCacheFile(File file, String namespace, String flowId, String taskId, String value) throws IOException {
@@ -834,6 +879,7 @@ public class RunContext {
 
     /**
      * Get the file extension including the '.' to be used with the various methods that took a suffix.
+     *
      * @param fileName the name of the file
      * @return the file extension including the '.' or null
      */
