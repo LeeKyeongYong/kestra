@@ -20,6 +20,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -40,7 +41,6 @@ public interface StorageInterface {
 
     @Retryable(includes = {IOException.class}, excludes = {FileNotFoundException.class})
     List<FileAttributes> list(String tenantId, URI uri) throws IOException;
-
 
     /**
      * Whether the uri points to a file/object that exist in the internal storage.
@@ -212,40 +212,7 @@ public interface StorageInterface {
         }
     }
 
-    default URI outputPrefix(Flow flow, Task task, Execution execution, TaskRun taskRun) {
-        try {
-            return new URI("//" + fromParts(
-                flow.getNamespace().replace(".", "/"),
-                Slugify.of(flow.getId()),
-                "executions",
-                execution.getId(),
-                "tasks",
-                Slugify.of(taskRun.getTaskId()),
-                taskRun.getId()
-            ));
-        } catch (URISyntaxException e) {
-            throw new IllegalArgumentException(e);
-        }
-    }
-
-    default URI outputPrefix(TriggerContext triggerContext, AbstractTrigger trigger, String triggerExecutionId) {
-        try {
-            return new URI("//" + fromParts(
-                triggerContext.getNamespace().replace(".", "/"),
-                Slugify.of(triggerContext.getFlowId()),
-                "executions",
-                triggerExecutionId,
-                "trigger",
-                Slugify.of(trigger.getId())
-            ));
-        } catch (URISyntaxException e) {
-            throw new IllegalArgumentException(e);
-        }
-    }
-
     private String fromParts(String... parts) {
-        return "/" + Arrays.stream(parts)
-            .filter(part -> part != null)
-            .collect(Collectors.joining("/"));
+        return "/" + Arrays.stream(parts).filter(Objects::nonNull).collect(Collectors.joining("/"));
     }
 }
